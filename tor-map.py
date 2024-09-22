@@ -132,7 +132,7 @@ def portScan(host, ports, wait, notor, jobs):
         if p > 65535:
             return openports
 
-        while  threading.activeCount() >= jobs + 1:
+        while  threading.active_count() >= jobs + 1:
             pass
 
         thread=threading.Thread(target=connScan,args=(host, p, wait, notor, openports))
@@ -181,6 +181,9 @@ def hostScan(host, ports, wait, notor, jobs):
 
     return ret
 
+
+
+
 def parseArgs(parser):
     """
         Parse all arguments and return the list of argument values
@@ -199,6 +202,8 @@ def parseArgs(parser):
     parser.add_argument("-j", "--jobs", metavar="JOBS", dest="jobs", type=int, help="maximum number of open connections at the same time", default="10")
     parser.add_argument("--output", metavar="OUTFILE", dest="outFile", help="write scan results to output file", default="empty_outfile")
     return parser.parse_args()
+
+
 
 
 def main():
@@ -280,13 +285,18 @@ def main():
             exit()
 
     ## Checking for file output
+
+    
+
     if OUTFILE != "empty_outfile":
         f = open(OUTFILE, "w")
-    else:
-        f = sys.stdout
+    def writeFile(text):
+        print(text,end="")
+        if OUTFILE != "empty_outfile":
+            f.write(text)
 
     ## Display message that scan is starting
-    f.write("Starting a scan...\n")
+    writeFile("Starting a scan...\n")
 
     ## Scan each host in HOSTS list
     r = dict()
@@ -301,35 +311,38 @@ def main():
             ## if there is nothing wirtten, there are no ports open on that host, skip to next one
             if len(r[i]) == 0:
                 continue
-            f.write('Tor-map scan report for {}\n'.format(i))
+            writeFile('Tor-map scan report for {}\n'.format(i))
             ## If BANNER argument isn's specified only print ports and their respective service
             if BANNER == False:
-                f.write('PORT\tSTATE\tSERVICE\n')
+                writeFile('PORT\tSTATE\tSERVICE\n')
                 for j in r[i]:
                     service = getPortInfo(j,PORTFILE)
-                    f.write('{}\topen\t{}\n'.format(j,service))
+                    writeFile('{}\topen\t{}\n'.format(j,service))
             ## If BANNER is specified, retrive banner for each port and print it next to earlier port reports
             if BANNER:
-                f.write('PORT\tSTATE\tSERVICE\tBANNER\n')
+                writeFile('PORT\tSTATE\tSERVICE\tBANNER\n')
                 for j in r[i]:
                     banner = getBanner(i,j,WAIT_TIME, CLEARNET)
                     service = getPortInfo(j,PORTFILE)
                     ## If there was error when reading banner, don't print nothing in it's place
                     if banner == "banner_error":
-                        f.write('{}\topen\t{}\n'.format(j,service))
+                        writeFile('{}\topen\t{}\n'.format(j,service))
                     else:
-                        f.write('{}\topen\t{}\t{}\n'.format(j,service,banner))
+                        writeFile('{}\topen\t{}\t{}\n'.format(j,service,banner))
 
     ## Record time of program stopping and display the time running to the user
     endTime = time.time()
     totalTime = round(endTime - startTime, 2)
 
-    f.write("Scan done in {} seconds\n".format(totalTime))
+    writeFile("Scan done in {} seconds\n".format(totalTime))
 
     ## If output file is defined inform the user where the results are written
     if OUTFILE != "empty_outfile":
         print("Results written to {}".format(OUTFILE))
         f.close()
+
+
+
 
 if __name__ == "__main__":
     main()
